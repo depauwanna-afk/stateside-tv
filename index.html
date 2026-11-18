@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stateside TV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Layout idea: a US listings guide with a navy masthead and poster-led shelves. */
+  :root {
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --ink: #17202e;
+    --muted: #566174;
+    --line: #d7dde6;
+    --mast: #12233f;
+    --mast-ink: #ffffff;
+    --mast-muted: #bdc9dc;
+    --accent: #b8243a;
+    --accent-ink: #ffffff;
+    --link: #1a55a8;
+    --good: #17693f;
+    --warn: #8a5200;
+    --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+    --body: "Barlow", "Segoe UI", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #0f1520;
+      --surface: #182130;
+      --ink: #edf1f7;
+      --muted: #a9b4c5;
+      --line: #303c50;
+      --mast: #0a1322;
+      --accent: #f0677c;
+      --accent-ink: #2b0710;
+      --link: #8fbdf5;
+      --good: #74d29d;
+      --warn: #efb562;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--body); }
+  h1, h2, h3, p { margin: 0; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.1; text-wrap: balance; }
+  h1 { font-size: clamp(2.25rem, 6vw, 3.25rem); }
+  h2 { font-size: 1.75rem; }
+  a { color: var(--link); }
+  img { display: block; max-width: 100%; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  main:focus { outline: none; }
+
+  .wrap { width: min(1160px, 100%); margin: 0 auto; padding-inline: 16px; }
+
+  /* Masthead */
+  .mast { background: var(--mast); color: var(--mast-ink); }
+  .mast-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-block: 10px; }
+  .brand { color: inherit; font: 600 1.75rem/1 var(--display); text-decoration: none; }
+  .brand span { display: block; color: var(--mast-muted); font: 500 .75rem/1.3 var(--body); }
+  .nav { display: flex; flex-wrap: wrap; gap: 2px; }
+  .nav a { padding: 8px 12px; border-bottom: 3px solid transparent; color: var(--mast-muted); font-weight: 600; text-decoration: none; }
+  .nav a:hover { color: var(--mast-ink); }
+  .nav a[aria-current="page"] { border-color: #ef5a70; color: var(--mast-ink); }
+  .mast :focus-visible { outline-color: #ffffff; }
+  .search { display: flex; flex: 1 1 240px; justify-content: flex-end; gap: 6px; }
+  .search input { flex: 0 1 260px; min-width: 0; min-height: 40px; padding: 6px 10px; background: #ffffff; border: 0; border-radius: 4px; color: #17202e; }
+  .search button { min-height: 40px; padding: 6px 14px; background: #c92d44; border: 0; border-radius: 4px; color: #ffffff; font-weight: 600; }
+
+  main { display: grid; gap: 32px; padding-block: 28px 40px; }
+  .stack { display: grid; gap: 14px; min-width: 0; }
+  .heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+  .muted { color: var(--muted); }
+  .small { font-size: .875rem; }
+  .panel { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+
+  /* Poster cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px 16px; }
+  .card { display: grid; align-content: start; gap: 6px; min-width: 0; color: inherit; text-decoration: none; }
+  .card:hover .card-name { color: var(--link); text-decoration: underline; }
+  .poster { width: 100%; aspect-ratio: 210 / 295; object-fit: cover; background: var(--line); border-radius: 4px; }
+  .no-poster { display: grid; place-items: center; padding: 10px; color: var(--muted); font-size: .875rem; text-align: center; }
+  .card-name { font-weight: 600; line-height: 1.25; }
+  .card-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 8px; color: var(--muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
+  .tag { justify-self: start; padding: 0 6px; border: 1px solid var(--warn); border-radius: 4px; color: var(--warn); font-size: .75rem; }
+
+  /* Controls */
+  .filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+  .control { display: grid; gap: 2px; font-size: .875rem; font-weight: 600; }
+  .control select, .control input { min-height: 40px; min-width: 140px; max-width: 100%; padding: 6px 8px; background: var(--surface); border: 1px solid var(--muted); border-radius: 4px; font-weight: 400; }
+  .check { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: .875rem; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .button { display: inline-block; min-height: 40px; padding: 7px 16px; background: var(--accent); border: 1px solid var(--accent); border-radius: 4px; color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+  .button.secondary { background: transparent; border-color: var(--muted); color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { min-height: 36px; padding: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+  /* Schedule */
+  .listing { display: grid; }
+  .slot { display: grid; grid-template-columns: 96px 48px minmax(0, 1fr) 150px; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .slot-time { font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .slot-time small { display: block; color: var(--muted); font-size: .75rem; font-weight: 400; }
+  .slot img, .slot .thumb { width: 48px; height: 67px; object-fit: cover; background: var(--line); border-radius: 3px; }
+  .slot-name { font-weight: 600; }
+  .slot-channel { color: var(--muted); font-size: .875rem; text-align: right; }
+
+  /* Show page */
+  .hero { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; }
+  .hero-body { display: grid; align-content: start; gap: 14px; min-width: 0; }
+  .genres { display: flex; flex-wrap: wrap; gap: 6px; }
+  .genre { padding: 1px 8px; border: 1px solid var(--line); border-radius: 4px; font-size: .875rem; }
+  .prose { max-width: 70ch; }
+  .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
+  .facts dt { color: var(--muted); font-size: .8125rem; }
+  .facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .running { color: var(--good); }
+  .next { padding: 8px 12px; background: var(--bg); border-left: 3px solid var(--good); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); }
+  .tabs a { padding: 8px 14px; border-bottom: 3px solid transparent; color: var(--muted); font-weight: 600; text-decoration: none; }
+  .tabs a[aria-current="page"] { border-color: var(--accent); color: var(--ink); }
+  .episode { border-top: 1px solid var(--line); }
+  .episode summary { display: grid; grid-template-columns: 62px minmax(0, 1fr) 100px 40px; gap: 10px; align-items: baseline; padding: 9px 2px; cursor: pointer; }
+  .episode summary::-webkit-details-marker { display: none; }
+  .ep-small { color: var(--muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
+  .ep-name { font-weight: 500; }
+  .ep-rating { text-align: right; }
+  .ep-text { max-width: 72ch; padding: 0 2px 12px 72px; color: var(--muted); }
+  .cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px 20px; margin: 0; padding: 0; list-style: none; }
+  .person { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center; }
+  .face { width: 52px; height: 52px; object-fit: cover; background: var(--line); border-radius: 50%; }
+  .person-name { font-weight: 600; line-height: 1.25; }
+
+  footer { padding-block: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: .875rem; }
+
+  @media (max-width: 800px) {
+    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .slot { grid-template-columns: 76px 48px minmax(0, 1fr); }
+    .slot-channel { grid-column: 3; text-align: left; }
+  }
+  @media (max-width: 600px) {
+    .search { flex: 1 1 100%; width: 100%; min-width: 0; }
+    .search input { flex: 1 1 0; width: 100%; }
+    .hero { grid-template-columns: minmax(0, 1fr); }
+    .hero .poster { width: 160px; }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .panel { padding: 16px; }
+    .control, .control select, .control input { width: 100%; }
+    .episode summary { grid-template-columns: 54px minmax(0, 1fr) 34px; }
+    .episode summary .ep-date { grid-column: 2; grid-row: 2; }
+    .ep-rating { grid-column: 3; grid-row: 1; }
+    .ep-text { padding-left: 2px; }
+  }
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="wrap mast-row">
+    <a class="brand" href="#home">Stateside TV<span>American series only</span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="#home" data-nav="home">Home</a>
+      <a href="#shows" data-nav="shows">Shows</a>
+      <a href="#schedule" data-nav="schedule">Schedule</a>
+      <a href="#watchlist" data-nav="watchlist">Watchlist</a>
+    </nav>
+    <form class="search" id="search-form" role="search">
+      <input id="search-input" type="search" placeholder="Search American shows" aria-label="Search American shows" autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+</header>
+
+<main class="wrap" id="view" tabindex="-1"></main>
+
+<footer class="wrap">
+  Stateside TV is an independent student project and is not affiliated with TVmaze.
+  Data from <a href="https://www.tvmaze.com">TVmaze</a>, licensed under
+  <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+</footer>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // Settings
+  // ---------------------------------------------------------------------------
+  const API_BASE = "https://api.tvmaze.com";
+  const REQUEST_GAP_MS = 550;     // Stays under TVmaze's limit of 20 calls per 10 seconds
+  const FIRST_CATALOG_PAGES = 4;  // Each page holds up to 250 shows from every country
+  const PAGE_SIZE = 48;
+  const US_TIME_ZONE = "America/New_York";
+  const WATCHLIST_KEY = "statesideWatchlist";
+  const GLOBAL_KEY = "statesideIncludeGlobal";
+
+  const view = document.getElementById("view");
+
+  // ---------------------------------------------------------------------------
+  // The American-only rule: every show on the site passes through this function
+  // ---------------------------------------------------------------------------
+
+  // "us"     = the show's network or web channel is registered in the United States
+  // "global" = English-language show on a worldwide streamer such as Netflix,
+  //            where TVmaze leaves the country empty, so its origin can't be confirmed
+  // "other"  = anything else
+  function classifyShow(show) {
+    const channel = show.network || show.webChannel;
+    const code = channel?.country?.code;
+    if (code) return code === "US" ? "us" : "other";
+    if (show.webChannel && show.language === "English") return "global";
+    return "other";
+  }
+
+  function isAllowed(show) {
+    const kind = classifyShow(show);
+    return kind === "us" || (kind === "global" && settings.includeGlobal);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Talking to the API
+  // ---------------------------------------------------------------------------
+  class ApiError extends Error {
+    constructor(status) {
+      super(`TVmaze returned ${status}`);
+      this.status = status;
+    }
+  }
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const responses = new Map(); // Remembers answers so repeat visits make no new calls
+  let requestQueue = Promise.resolve();
+
+  async function sendRequest(path) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const response = await fetch(API_BASE + path);
+      if (response.ok) return response.json();
+      if (response.status !== 429 || attempt === 3) throw new ApiError(response.status);
+      await wait(3000 * attempt); // Too many requests: pause, then try again
+    }
+  }
+
+  // Requests go one at a time, with a short gap between them
+  function api(path) {
+    if (responses.has(path)) return responses.get(path);
+    const job = requestQueue.then(() => sendRequest(path));
+    requestQueue = job.catch(() => {}).then(() => wait(REQUEST_GAP_MS));
+    responses.set(path, job);
+    job.catch(() => responses.delete(path));
+    return job;
+  }
+
+  // The show index can't be filtered by country, so pages are loaded and filtered here
+  const catalog = { shows: new Map(), nextPage: 0, finished: false, loading: null };
+
+  function loadCatalogPages(count) {
+    if (catalog.loading) return catalog.loading;
+    catalog.loading = (async () => {
+      for (let i = 0; i < count && !catalog.finished; i++) {
+        try {
+          const page = await api(`/shows?page=${catalog.nextPage}`);
+          page.forEach((show) => catalog.shows.set(show.id, show));
+          catalog.nextPage++;
+        } catch (error) {
+          if (error.status !== 404) throw error;
+          catalog.finished = true; // A 404 marks the end of the index
+        }
+      }
+    })().finally(() => { catalog.loading = null; });
+    return catalog.loading;
+  }
+
+  async function ensureCatalog() {
+    if (catalog.nextPage < FIRST_CATALOG_PAGES && !catalog.finished) {
+      await loadCatalogPages(FIRST_CATALOG_PAGES - catalog.nextPage);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Saved settings and watchlist
+  // ---------------------------------------------------------------------------
+  function readSaved(key, fallback) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key));
+      return value === null ? fallback : value;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* Works for this visit only */ }
+  }
+
+  const settings = { includeGlobal: readSaved(GLOBAL_KEY, false) === true };
+  let watchlist = readSaved(WATCHLIST_KEY, []);
+  if (!Array.isArray(watchlist)) watchlist = [];
+
+  const isWatched = (id) => watchlist.some((show) => show.id === id);
+
+  function toggleWatched(show) {
+    if (isWatched(show.id)) {
+      watchlist = watchlist.filter((item) => item.id !== show.id);
+    } else {
+      const { id, name, image, rating, network, webChannel, premiered, language } = show;
+      watchlist = [{ id, name, image, rating, network, webChannel, premiered, language }, ...watchlist];
+    }
+    save(WATCHLIST_KEY, watchlist);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Small helpers
+  // ---------------------------------------------------------------------------
+
+  // Creates an element. Text is added safely, so API data can't inject HTML.
+  function el(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    Object.assign(node, props);
+    node.append(...children.flat().filter((child) => child !== null && child !== undefined && child !== false));
+    return node;
+  }
+
+  // TVmaze summaries contain HTML tags like <p>. This keeps only the words.
+  function plainText(html) {
+    if (!html) return "";
+    return new DOMParser().parseFromString(html, "text/html").body.textContent.trim();
+  }
+
+  const channelName = (show) => show.network?.name || show.webChannel?.name || "Unknown channel";
+  const ratingOf = (show) => show.rating?.average || 0;
+  const yearOf = (show) => (show.premiered ? show.premiered.slice(0, 4) : "");
+
+  function formatDate(isoDate) {
+    if (!isoDate) return "Date unknown";
+    const date = new Date(`${isoDate}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return "Date unknown";
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function episodeCode(episode) {
+    return episode.number ? `S${episode.season} E${episode.number}` : `S${episode.season} special`;
+  }
+
+  // Today's date as it is in the United States (Eastern Time)
+  function usToday() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: US_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  }
+
+  function shiftDate(isoDate, days) {
+    const date = new Date(`${isoDate}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  const easternTime = (stamp) => new Date(stamp).toLocaleTimeString("en-US", { timeZone: US_TIME_ZONE, hour: "numeric", minute: "2-digit" });
+  const yourTime = (stamp) => new Date(stamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const easternHour = (stamp) => Number(new Intl.DateTimeFormat("en-US", { timeZone: US_TIME_ZONE, hour: "numeric", hourCycle: "h23" }).format(new Date(stamp)));
+
+  function safeLink(url, label) {
+    if (!/^https?:\/\//i.test(url || "")) return null;
+    return el("a", { href: url, target: "_blank", rel: "noopener" }, label);
+  }
+
+  function poster(show) {
+    return show.image?.medium
+      ? el("img", { className: "poster", src: show.image.medium, alt: "", loading: "lazy" })
+      : el("div", { className: "poster no-poster" }, "No poster");
+  }
+
+  function showCard(show) {
+    return el("a", { className: "card", href: `#show/${show.id}` },
+      poster(show),
+      el("span", { className: "card-name" }, show.name),
+      el("span", { className: "card-meta" },
+        el("span", {}, channelName(show)),
+        el("span", {}, ratingOf(show) ? `${show.rating.average} / 10` : yearOf(show))
+      ),
+      classifyShow(show) === "global" ? el("span", { className: "tag" }, "Global streamer") : null
+    );
+  }
+
+  function globalToggle() {
+    const box = el("input", { type: "checkbox", id: "include-global", checked: settings.includeGlobal });
+    box.addEventListener("change", () => {
+      settings.includeGlobal = box.checked;
+      save(GLOBAL_KEY, box.checked);
+      renderRoute();
+    });
+    return el("label", { className: "check", htmlFor: "include-global" }, box, "Include English-language shows on global streamers");
+  }
+
+  function loading(text) {
+    return el("p", { className: "muted", role: "status" }, text);
+  }
+
+  function messagePanel(title, text, ...actions) {
+    return el("section", { className: "panel stack" }, el("h1", {}, title), el("p", {}, text),
+      actions.length ? el("div", { className: "actions" }, actions) : null);
+  }
+
+  function errorPanel() {
+    const retry = el("button", { className: "button", type: "button" }, "Try again");
+    retry.addEventListener("click", renderRoute);
+    return messagePanel("Couldn't load this page", "TVmaze didn't respond. Check your internet connection, then try again.", retry);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Home
+  // ---------------------------------------------------------------------------
+  async function renderHome(isCurrent) {
+    document.title = "Stateside TV";
+    const tonightBox = el("div", { className: "stack" }, loading("Loading tonight's schedule…"));
+    const topBox = el("div", { className: "stack" }, loading("Loading American series…"));
+    view.replaceChildren(
+      el("section", { className: "stack" },
+        el("div", { className: "heading" }, el("h1", {}, "Tonight on American TV"), el("a", { href: "#schedule" }, "Full schedule")),
+        tonightBox),
+      el("section", { className: "stack" },
+        el("div", { className: "heading" }, el("h2", {}, "Top-rated American series"), el("a", { href: "#shows" }, "Browse all shows")),
+        topBox)
+    );
+
+    try {
+      const episodes = await loadSchedule(usToday());
+      if (!isCurrent()) return;
+      const primetime = episodes.filter((episode) => episode.airtime && easternHour(episode.airstamp) >= 19);
+      const picks = (primetime.length ? primetime : episodes).slice(0, 8);
+      tonightBox.replaceChildren(picks.length
+        ? el("div", { className: "listing" }, picks.map(scheduleRow))
+        : el("p", { className: "muted" }, "No American episodes are listed for tonight."));
+    } catch {
+      if (isCurrent()) tonightBox.replaceChildren(el("p", { className: "muted" }, "Tonight's schedule isn't available right now."));
+    }
+
+    await ensureCatalog();
+    if (!isCurrent()) return;
+    const shows = allowedCatalog();
+    const top = [...shows].sort((a, b) => ratingOf(b) - ratingOf(a)).slice(0, 12);
+
+    const counts = new Map();
+    shows.forEach((show) => counts.set(channelName(show), (counts.get(channelName(show)) || 0) + 1));
+    const channels = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name]) => name);
+    const chips = channels.map((name) => {
+      const chip = el("button", { className: "chip", type: "button" }, name);
+      chip.addEventListener("click", () => {
+        Object.assign(filters, { genre: "", status: "", channel: name, visible: PAGE_SIZE });
+        location.hash = "shows";
+      });
+      return chip;
+    });
+
+    topBox.replaceChildren(el("div", { className: "grid" }, top.map(showCard)));
+    view.append(el("section", { className: "stack" }, el("h2", {}, "Browse by network"), el("div", { className: "chips" }, chips)));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Browse shows
+  // ---------------------------------------------------------------------------
+  const filters = { genre: "", channel: "", status: "", sort: "rating", visible: PAGE_SIZE };
+
+  const allowedCatalog = () => [...catalog.shows.values()].filter(isAllowed);
+
+  function selectControl(id, label, value, options, onChange) {
+    const select = el("select", { id },
+      options.map(([optionValue, text]) => el("option", { value: optionValue, selected: optionValue === value }, text)));
+    select.addEventListener("change", () => onChange(select.value));
+    return el("label", { className: "control", htmlFor: id }, label, select);
+  }
+
+  async function renderShows(isCurrent) {
+    document.title = "Shows · Stateside TV";
+    view.replaceChildren(el("h1", {}, "American TV shows"), loading("Loading American series…"));
+    await ensureCatalog();
+    if (isCurrent()) drawShows();
+  }
+
+  function drawShows() {
+    const shows = allowedCatalog();
+    const unique = (values) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const update = (key) => (value) => {
+      filters[key] = value;
+      filters.visible = PAGE_SIZE;
+      drawShows();
+    };
+
+    const matches = shows.filter((show) =>
+      (!filters.genre || show.genres?.includes(filters.genre)) &&
+      (!filters.channel || channelName(show) === filters.channel) &&
+      (!filters.status || show.status === filters.status));
+
+    const sorters = {
+      rating: (a, b) => ratingOf(b) - ratingOf(a),
+      newest: (a, b) => (b.premiered || "").localeCompare(a.premiered || ""),
+      name: (a, b) => a.name.localeCompare(b.name)
+    };
+    matches.sort(sorters[filters.sort]);
+
+    const more = el("button", { className: "button secondary", type: "button" }, "Load more series");
+    more.addEventListener("click", async () => {
+      if (filters.visible < matches.length) {
+        filters.visible += PAGE_SIZE;
+        drawShows();
+        return;
+      }
+      more.disabled = true;
+      more.textContent = "Loading…";
+      try {
+        await loadCatalogPages(2);
+        filters.visible += PAGE_SIZE;
+        if (currentRoute().name === "shows") drawShows();
+      } catch {
+        more.disabled = false;
+        more.textContent = "Couldn't load more. Try again";
+      }
+    });
+
+    view.replaceChildren(
+      el("h1", {}, "American TV shows"),
+      el("section", { className: "stack" },
+        el("div", { className: "filters" },
+          selectControl("filter-genre", "Genre", filters.genre, [["", "All genres"], ...unique(shows.flatMap((s) => s.genres || [])).map((v) => [v, v])], update("genre")),
+          selectControl("filter-channel", "Network", filters.channel, [["", "All networks"], ...unique(shows.map(channelName)).map((v) => [v, v])], update("channel")),
+          selectControl("filter-status", "Status", filters.status, [["", "Any status"], ...unique(shows.map((s) => s.status)).map((v) => [v, v])], update("status")),
+          selectControl("filter-sort", "Sort by", filters.sort, [["rating", "Highest rated"], ["newest", "Newest premiere"], ["name", "Name, A to Z"]], update("sort"))
+        ),
+        globalToggle(),
+        el("p", { className: "muted small", role: "status" }, `${matches.length} American series found in the ${catalog.shows.size} shows loaded so far`),
+        matches.length
+          ? el("div", { className: "grid" }, matches.slice(0, filters.visible).map(showCard))
+          : el("p", { className: "muted" }, "No loaded series match these filters. Load more series or change a filter."),
+        (filters.visible < matches.length || !catalog.finished) ? el("div", {}, more) : null
+      )
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Schedule
+  // ---------------------------------------------------------------------------
+  let scheduleDate = null;
+
+  // Broadcast and US streaming always load. Global streamers load only when switched on.
+  async function loadSchedule(date) {
+    const requests = [api(`/schedule?country=US&date=${date}`), api(`/schedule/web?country=US&date=${date}`)];
+    if (settings.includeGlobal) requests.push(api(`/schedule/web?country=&date=${date}`));
+    const lists = await Promise.all(requests);
+
+    const seen = new Set();
+    return lists.flat()
+      .map((episode) => ({ ...episode, show: episode.show || episode._embedded?.show }))
+      .filter((episode) => {
+        if (!episode.show || seen.has(episode.id) || !isAllowed(episode.show)) return false;
+        seen.add(episode.id);
+        return true;
+      })
+      .sort((a, b) => (a.airstamp || "").localeCompare(b.airstamp || ""));
+  }
+
+  function scheduleRow(episode) {
+    const show = episode.show;
+    return el("div", { className: "slot" },
+      el("div", { className: "slot-time" },
+        episode.airtime && episode.airstamp
+          ? [`${easternTime(episode.airstamp)} ET`, el("small", {}, `${yourTime(episode.airstamp)} your time`)]
+          : "Any time"),
+      show.image?.medium ? el("img", { src: show.image.medium, alt: "", loading: "lazy" }) : el("div", { className: "thumb" }),
+      el("div", {},
+        el("a", { className: "slot-name", href: `#show/${show.id}` }, show.name),
+        el("div", { className: "muted small" }, `${episodeCode(episode)}: ${episode.name || "Untitled episode"}`)),
+      el("div", { className: "slot-channel" }, channelName(show))
+    );
+  }
+
+  async function renderSchedule(isCurrent) {
+    document.title = "Schedule · Stateside TV";
+    scheduleDate = scheduleDate || usToday();
+
+    const goTo = (date) => { scheduleDate = date; renderRoute(); };
+    const dayButton = (label, days) => {
+      const button = el("button", { className: "button secondary", type: "button" }, label);
+      button.addEventListener("click", () => goTo(shiftDate(scheduleDate, days)));
+      return button;
+    };
+    const dateInput = el("input", { id: "schedule-date", type: "date", value: scheduleDate });
+    dateInput.addEventListener("change", () => { if (dateInput.value) goTo(dateInput.value); });
+
+    const listBox = el("div", { className: "stack" }, loading("Loading the schedule…"));
+    view.replaceChildren(
+      el("h1", {}, "American TV schedule"),
+      el("section", { className: "stack" },
+        el("div", { className: "filters" },
+          dayButton("Previous day", -1),
+          el("label", { className: "control", htmlFor: "schedule-date" }, "Date", dateInput),
+          dayButton("Next day", 1)),
+        globalToggle(),
+        listBox)
+    );
+
+    const episodes = await loadSchedule(scheduleDate);
+    if (!isCurrent()) return;
+    const isOnNetwork = (episode) => Boolean(episode.show.network);
+    const section = (title, items) => items.length
+      ? el("section", { className: "stack" }, el("h2", {}, `${title} (${items.length})`), el("div", { className: "listing" }, items.map(scheduleRow)))
+      : null;
+    const parts = [
+      section("Network and cable", episodes.filter(isOnNetwork)),
+      section("Streaming", episodes.filter((episode) => !isOnNetwork(episode)))
+    ].filter(Boolean);
+    listBox.replaceChildren(...(parts.length ? parts : [el("p", { className: "muted" }, `No American episodes are listed for ${formatDate(scheduleDate)}.`)]));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------------------------
+  async function renderSearch(isCurrent, term) {
+    document.title = `${term} · Stateside TV`;
+    document.getElementById("search-input").value = term;
+    view.replaceChildren(el("h1", {}, `Results for “${term}”`), loading("Searching American shows…"));
+
+    const results = await api(`/search/shows?q=${encodeURIComponent(term)}`);
+    if (!isCurrent()) return;
+    const allowed = results.map((result) => result.show).filter(isAllowed);
+    const hidden = results.length - allowed.length;
+
+    view.replaceChildren(
+      el("h1", {}, `Results for “${term}”`),
+      el("section", { className: "stack" },
+        globalToggle(),
+        el("p", { className: "muted small", role: "status" },
+          `${allowed.length} American series found` + (hidden ? `, ${hidden} other ${hidden === 1 ? "result" : "results"} hidden` : "")),
+        allowed.length
+          ? el("div", { className: "grid" }, allowed.map(showCard))
+          : el("p", { className: "muted" }, "Try a different spelling or another title."))
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Watchlist
+  // ---------------------------------------------------------------------------
+  function renderWatchlist() {
+    document.title = "Watchlist · Stateside TV";
+    view.replaceChildren(
+      el("h1", {}, "Your watchlist"),
+      watchlist.length
+        ? el("div", { className: "grid" }, watchlist.map(showCard))
+        : el("section", { className: "panel stack" },
+            el("p", {}, "Shows you add will appear here. Your list is saved in this browser."),
+            el("div", {}, el("a", { className: "button", href: "#shows" }, "Browse shows")))
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Show page
+  // ---------------------------------------------------------------------------
+  async function renderShow(isCurrent, id, tab) {
+    view.replaceChildren(loading("Loading the show…"));
+    let show;
+    try {
+      show = await api(`/shows/${id}?embed[]=episodes&embed[]=cast&embed[]=nextepisode`);
+    } catch (error) {
+      if (error.status !== 404) throw error;
+      if (isCurrent()) view.replaceChildren(messagePanel("Show not found", `TVmaze has no show with ID ${id}.`, el("a", { className: "button", href: "#shows" }, "Browse shows")));
+      return;
+    }
+    if (!isCurrent()) return;
+
+    document.title = `${show.name} · Stateside TV`;
+    const kind = classifyShow(show);
+
+    if (kind === "other") {
+      const country = (show.network || show.webChannel)?.country?.name;
+      view.replaceChildren(messagePanel(`${show.name} isn't on Stateside TV`,
+        country ? `This site only lists American series, and this show comes from ${country}.` : "This site only lists American series, and TVmaze doesn't list this show's country.",
+        el("a", { className: "button", href: "#shows" }, "Browse American shows")));
+      return;
+    }
+    if (kind === "global" && !settings.includeGlobal) {
+      const enable = el("button", { className: "button", type: "button" }, "Include global streamers");
+      enable.addEventListener("click", () => {
+        settings.includeGlobal = true;
+        save(GLOBAL_KEY, true);
+        renderRoute();
+      });
+      view.replaceChildren(messagePanel(`${show.name} streams worldwide`,
+        `${channelName(show)} is a global streamer, so TVmaze can't confirm this series is American.`, enable));
+      return;
+    }
+
+    const episodes = show._embedded?.episodes || [];
+    const cast = show._embedded?.cast || [];
+    const tabLink = (key, label) => {
+      const link = el("a", { href: `#show/${id}${key === "main" ? "" : `/${key}`}` }, label);
+      if (key === tab) link.setAttribute("aria-current", "page");
+      return link;
+    };
+
+    const content = tab === "episodes" ? episodeGuide(episodes)
+      : tab === "cast" ? castList(cast)
+      : el("div", { className: "stack" },
+          el("h2", {}, "Main cast"),
+          cast.length ? castList(cast.slice(0, 8)) : el("p", { className: "muted" }, "TVmaze has no cast listed for this show."),
+          cast.length > 8 ? el("div", {}, el("a", { href: `#show/${id}/cast` }, `See all ${cast.length} cast members`)) : null);
+
+    view.replaceChildren(
+      showHero(show, episodes),
+      el("section", { className: "stack" },
+        el("nav", { className: "tabs", ariaLabel: "Show sections" },
+          tabLink("main", "Overview"), tabLink("episodes", `Episodes (${episodes.length})`), tabLink("cast", `Cast (${cast.length})`)),
+        content)
+    );
+  }
+
+  function showHero(show, episodes) {
+    const seasons = new Set(episodes.map((episode) => episode.season));
+    const next = show._embedded?.nextepisode;
+    const runtime = show.runtime || show.averageRuntime;
+    const years = yearOf(show) && (show.ended ? `${yearOf(show)}–${show.ended.slice(0, 4)}` : show.status === "Running" ? `${yearOf(show)}–present` : yearOf(show));
+    const facts = [
+      ["Status", el("span", { className: show.status === "Running" ? "running" : "" }, show.status || "Unknown")],
+      ["Rating", ratingOf(show) ? `${show.rating.average} / 10` : "Not rated"],
+      ["Network", channelName(show)],
+      ["Schedule", show.schedule?.days?.length ? `${show.schedule.days.join(", ")}${show.schedule.time ? ` at ${show.schedule.time}` : ""}` : "Not set"],
+      ["Seasons", String(seasons.size)],
+      ["Episodes", String(episodes.length)],
+      ["Runtime", runtime ? `${runtime} min` : "Unknown"],
+      ["Premiered", formatDate(show.premiered)]
+    ];
+
+    const watch = el("button", { className: "button", type: "button" });
+    const drawWatch = () => { watch.textContent = isWatched(show.id) ? "Remove from watchlist" : "Add to watchlist"; };
+    watch.addEventListener("click", () => { toggleWatched(show); drawWatch(); });
+    drawWatch();
+
+    return el("article", { className: "panel hero" },
+      poster(show),
+      el("div", { className: "hero-body" },
+        el("div", {},
+          el("h1", {}, show.name),
+          el("p", { className: "muted" }, [years, show.type, show.language].filter(Boolean).join(" · "))),
+        classifyShow(show) === "global" ? el("span", { className: "tag" }, "Global streamer: American origin not confirmed") : null,
+        show.genres?.length ? el("div", { className: "genres" }, show.genres.map((genre) => el("span", { className: "genre" }, genre))) : null,
+        el("p", { className: "prose" }, plainText(show.summary) || "No summary available."),
+        el("dl", { className: "facts" }, facts.map(([label, value]) => el("div", {}, el("dt", {}, label), el("dd", {}, value)))),
+        next ? el("p", { className: "next" }, el("strong", {}, "Next episode: "), `${episodeCode(next)}, ${next.name}, ${formatDate(next.airdate)}`) : null,
+        el("div", { className: "actions" }, watch, safeLink(show.url, "View on TVmaze"), safeLink(show.officialSite, "Official site"))
+      )
+    );
+  }
+
+  function episodeGuide(episodes) {
+    if (!episodes.length) return el("p", { className: "muted" }, "TVmaze has no episodes listed for this show.");
+    const seasons = [...new Set(episodes.map((episode) => episode.season))].sort((a, b) => a - b);
+    let selected = seasons[0];
+    const list = el("div", {});
+
+    function drawEpisodes() {
+      list.replaceChildren(...episodes.filter((episode) => episode.season === selected).map((episode) =>
+        el("details", { className: "episode" },
+          el("summary", {},
+            el("span", { className: "ep-small" }, episodeCode(episode)),
+            el("span", { className: "ep-name" }, episode.name || "Untitled episode"),
+            el("span", { className: "ep-small ep-date" }, formatDate(episode.airdate)),
+            el("span", { className: "ep-small ep-rating" }, episode.rating?.average ? String(episode.rating.average) : "–")),
+          el("p", { className: "ep-text" }, plainText(episode.summary) || "No summary available."))));
+    }
+
+    const bar = el("div", { className: "chips", role: "group", ariaLabel: "Choose a season" });
+    seasons.forEach((season) => {
+      const chip = el("button", { className: "chip", type: "button" }, `Season ${season}`);
+      chip.setAttribute("aria-pressed", String(season === selected));
+      chip.addEventListener("click", () => {
+        selected = season;
+        bar.querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", String(item === chip)));
+        drawEpisodes();
+      });
+      bar.append(chip);
+    });
+    drawEpisodes();
+    return el("div", { className: "stack" }, bar, list);
+  }
+
+  function castList(cast) {
+    if (!cast.length) return el("p", { className: "muted" }, "TVmaze has no cast listed for this show.");
+    return el("ul", { className: "cast" }, cast.map((member) => {
+      const photo = member.person?.image?.medium || member.character?.image?.medium;
+      return el("li", { className: "person" },
+        photo ? el("img", { className: "face", src: photo, alt: "", loading: "lazy" }) : el("div", { className: "face" }),
+        el("div", {},
+          el("div", { className: "person-name" }, member.person?.name || "Unknown"),
+          el("div", { className: "muted small" }, member.character?.name ? `as ${member.character.name}` : "")));
+    }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Page navigation, based on the part of the address after #
+  // ---------------------------------------------------------------------------
+  function currentRoute() {
+    const [name, ...rest] = location.hash.slice(1).split("/");
+    if (name === "show" && /^\d+$/.test(rest[0] || "")) {
+      return { name, id: Number(rest[0]), tab: ["episodes", "cast"].includes(rest[1]) ? rest[1] : "main" };
+    }
+    if (name === "search" && rest.length) {
+      try {
+        return { name, term: decodeURIComponent(rest.join("/")) };
+      } catch {
+        return { name: "home" };
+      }
+    }
+    return { name: ["shows", "schedule", "watchlist"].includes(name) ? name : "home" };
+  }
+
+  let routeNumber = 0;
+
+  async function renderRoute() {
+    const thisRoute = ++routeNumber;
+    const isCurrent = () => thisRoute === routeNumber; // Ignores slow answers after the page changes
+    const route = currentRoute();
+
+    document.querySelectorAll("[data-nav]").forEach((link) => {
+      if (link.dataset.nav === route.name) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+
+    try {
+      if (route.name === "shows") await renderShows(isCurrent);
+      else if (route.name === "schedule") await renderSchedule(isCurrent);
+      else if (route.name === "watchlist") renderWatchlist();
+      else if (route.name === "search") await renderSearch(isCurrent, route.term);
+      else if (route.name === "show") await renderShow(isCurrent, route.id, route.tab);
+      else await renderHome(isCurrent);
+    } catch {
+      if (isCurrent()) view.replaceChildren(errorPanel());
+    }
+  }
+
+  document.getElementById("search-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const term = document.getElementById("search-input").value.trim();
+    if (term) location.hash = `search/${encodeURIComponent(term)}`;
+  });
+
+  window.addEventListener("hashchange", () => {
+    window.scrollTo(0, 0);
+    view.focus({ preventScroll: true });
+    renderRoute();
+  });
+
+  renderRoute();
+</script>
+</body>
+</html>
